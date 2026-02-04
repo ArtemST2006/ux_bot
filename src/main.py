@@ -6,9 +6,14 @@ from aiogram import Bot, Dispatcher
 from aiogram.filters import CommandStart
 from aiogram.types import Message, ReplyKeyboardMarkup, KeyboardButton
 
+from src.notification_settings import router as notifications_router
+from src.sleep_mode import router as sleep_router
+from src.scheduler import scheduler
 
 dp = Dispatcher()
 
+dp.include_router(notifications_router)
+dp.include_router(sleep_router)
 
 @dp.message(CommandStart())
 async def cmd_start(message: Message):
@@ -43,6 +48,8 @@ async def main():
     bot = Bot(token=config.BOT_TOKEN)
 
     await bot.delete_webhook(drop_pending_updates=True)
+
+    scheduler.start()
 
     print("Бот запущен...")
     await dp.start_polling(bot)
