@@ -1,6 +1,8 @@
 import asyncio
 import logging
 from src.config import config
+from src.practice_list import router as practice_router, show_practice_list_message, show_favorites_message
+from src.practice_list import show_practice_list_message
 
 from aiogram import Bot, Dispatcher
 from aiogram.filters import CommandStart
@@ -8,19 +10,24 @@ from aiogram.types import Message, ReplyKeyboardMarkup, KeyboardButton
 
 
 dp = Dispatcher()
+dp.include_router(practice_router)
 
 
 @dp.message(CommandStart())
 async def cmd_start(message: Message):
     kb = [
-        [
-            KeyboardButton(text="🧘 Практики"),
-            KeyboardButton(text="😴 Контроль сна")
-        ],
-        [
-            KeyboardButton(text="🔔 Настроить уведомления")
-        ]
+    [
+        KeyboardButton(text="🧘 Практики"),
+        KeyboardButton(text="⭐ Избранное"),
+    ],
+    [
+        KeyboardButton(text="😴 Контроль сна")
+    ],
+    [
+        KeyboardButton(text="🔔 Настроить уведомления")
     ]
+]
+
     keyboard = ReplyKeyboardMarkup(
         keyboard=kb,
         resize_keyboard=True,
@@ -36,6 +43,13 @@ async def cmd_start(message: Message):
 
     await message.answer(greeting_text, reply_markup=keyboard)
 
+@dp.message(lambda m: m.text == "🧘 Практики")
+async def open_practices(message: Message):
+    await show_practice_list_message(message)
+
+@dp.message(lambda m: m.text == "⭐ Избранное")
+async def open_favorites(message: Message):
+    await show_favorites_message(message)
 
 async def main():
     logging.basicConfig(level=logging.INFO)
