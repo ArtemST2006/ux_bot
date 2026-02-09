@@ -1,5 +1,3 @@
-# src/practice_list.py
-
 from aiogram import Router, F
 from aiogram.filters import Command
 from aiogram.types import (
@@ -29,6 +27,7 @@ CB_FAV_RM_PREFIX = "fav:rm:"          # удалить fav:rm:<cat>:<item>
 # ДАННЫЕ
 # ======================
 def bullets(lines: list[str]) -> str:
+    # Используем обычные символы, HTML теги для списков в TG ограничены
     return "\n".join([f"• {x}" for x in lines])
 
 
@@ -212,10 +211,10 @@ def kb_item_actions(user_id: int, cat_id: str, item_id: str, back_to_cat: bool =
 
 
 def main_menu_keyboard() -> ReplyKeyboardMarkup:
+    # ИСПРАВЛЕНИЕ: Кнопка избранное должна быть здесь
     kb = [
-        [KeyboardButton(text="🧘 Практики"), KeyboardButton(text="⭐ Избранное")],
-        [KeyboardButton(text="😴 Контроль сна")],
-        [KeyboardButton(text="🔔 Настроить уведомления")],
+        [KeyboardButton(text="🧘 Практики"), KeyboardButton(text="⭐️ Избранное")],
+        [KeyboardButton(text="😴 Контроль сна"), KeyboardButton(text="🔔 Настроить уведомления")],
     ]
     return ReplyKeyboardMarkup(keyboard=kb, resize_keyboard=True, input_field_placeholder="Выберите действие...")
 
@@ -234,10 +233,11 @@ async def show_categories(target: Message | CallbackQuery):
 
 async def show_category(callback: CallbackQuery, cat_id: str):
     cat = CATEGORIES[cat_id]
+    # Используем HTML
     await callback.message.edit_text(
-        f"**{cat['title']}**\nВыберите пункт:",
+        f"<b>{cat['title']}</b>\nВыберите пункт:",
         reply_markup=kb_category_items(cat_id),
-        parse_mode="Markdown",
+        parse_mode="HTML",
     )
     await callback.answer()
 
@@ -250,11 +250,12 @@ async def show_item(callback: CallbackQuery, cat_id: str, item_id: str):
         return
 
     user_id = callback.from_user.id
-    text = f"**{data['title']}**\n\n{data['text']}"
+    # Используем HTML
+    text = f"<b>{data['title']}</b>\n\n{data['text']}"
     await callback.message.edit_text(
         text,
         reply_markup=kb_item_actions(user_id, cat_id, item_id),
-        parse_mode="Markdown",
+        parse_mode="HTML",
     )
     await callback.answer()
 
@@ -284,10 +285,11 @@ async def show_favorites_message(message: Message):
 
     rows.append([InlineKeyboardButton(text="🏠 В главное меню", callback_data=CB_HOME)])
 
+    # Используем HTML
     await message.answer(
-        "⭐ **Избранное**\nВыберите пункт:",
+        "⭐ <b>Избранное</b>\nВыберите пункт:",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=rows),
-        parse_mode="Markdown"
+        parse_mode="HTML"
     )
 
 

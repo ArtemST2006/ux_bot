@@ -24,10 +24,11 @@ def get_yes_no_kb():
 
 
 def get_main_menu_kb():
+    """Возвращает главное меню (С ИСПРАВЛЕНИЕМ: добавлена кнопка Избранное)"""
     return ReplyKeyboardMarkup(
         keyboard=[
-            [KeyboardButton(text="🧘 Практики"), KeyboardButton(text="😴 Контроль сна")],
-            [KeyboardButton(text="🔔 Настроить уведомления")]
+            [KeyboardButton(text="🧘 Практики"), KeyboardButton(text="⭐️ Избранное")],
+            [KeyboardButton(text="😴 Контроль сна"), KeyboardButton(text="🔔 Настроить уведомления")]
         ],
         resize_keyboard=True,
         input_field_placeholder="Выберите действие..."
@@ -50,8 +51,9 @@ async def time_selected(callback: types.CallbackQuery):
     await callback.answer(f"Установлено: {selected_time}")
 
     await callback.message.edit_text(
-        f"Время уведомлений {selected_time} задано.\nХочешь получать уведомления еще в какое-то время?",
-        reply_markup=get_yes_no_kb()
+        f"Время уведомлений <b>{selected_time}</b> задано.\nХочешь получать уведомления еще в какое-то время?",
+        reply_markup=get_yes_no_kb(),
+        parse_mode="HTML"
     )
 
 

@@ -39,11 +39,11 @@ def get_method_kb():
 
 
 def get_main_menu_kb():
-    """Главное меню для выхода"""
+    """Главное меню для выхода (С ИСПРАВЛЕНИЕМ: добавлена кнопка Избранное)"""
     return ReplyKeyboardMarkup(
         keyboard=[
-            [KeyboardButton(text="🧘 Практики"), KeyboardButton(text="😴 Контроль сна")],
-            [KeyboardButton(text="🔔 Настроить уведомления")]
+            [KeyboardButton(text="🧘 Практики"), KeyboardButton(text="⭐️ Избранное")],
+            [KeyboardButton(text="😴 Контроль сна"), KeyboardButton(text="🔔 Настроить уведомления")]
         ],
         resize_keyboard=True,
         input_field_placeholder="Выберите действие..."
@@ -57,9 +57,9 @@ async def sleep_mode_start(message: types.Message, state: FSMContext):
     text = (
         "Этот помощник поможет рассчитать идеальное время для сна и пробуждения.\n"
         "Мы будем использовать циклы сна по 1.5 часа (90 минут), чтобы ты просыпался бодрым.\n\n"
-        "Сначала выбери: сколько часов сна для тебя **минимум**?"
+        "Сначала выбери: сколько часов сна для тебя <b>минимум</b>?"
     )
-    await message.answer(text, reply_markup=get_hours_kb("min"))
+    await message.answer(text, reply_markup=get_hours_kb("min"), parse_mode="HTML")
     await state.set_state(SleepState.choosing_min)
 
 
@@ -70,8 +70,9 @@ async def process_min_sleep(callback: types.CallbackQuery, state: FSMContext):
 
     await callback.message.edit_text(
         f"Принято: минимум {min_hours}ч.\n"
-        "А сколько часов ты хочешь спать в **идеале (максимум)**?",
-        reply_markup=get_hours_kb("max")
+        "А сколько часов ты хочешь спать в <b>идеале (максимум)</b>?",
+        reply_markup=get_hours_kb("max"),
+        parse_mode="HTML"
     )
     await state.set_state(SleepState.choosing_max)
 
@@ -101,8 +102,8 @@ async def ask_bedtime(callback: types.CallbackQuery, state: FSMContext):
     await callback.message.edit_text(
         "Во сколько ты планируешь лечь спать?\n"
         "(Напиши время, например: 23:30)\n\n"
-        "💡 *Совет:* Обычно человеку нужно около 15 минут, чтобы уснуть. Учти это при вводе времени."
-        , parse_mode="Markdown")
+        "💡 <i>Совет: Обычно человеку нужно около 15 минут, чтобы уснуть. Учти это при вводе времени.</i>"
+        , parse_mode="HTML")
     await state.set_state(SleepState.waiting_bedtime)
 
 
@@ -117,8 +118,6 @@ async def ask_wakeup(callback: types.CallbackQuery, state: FSMContext):
 def get_sleep_cycles(base_time: datetime, min_h: int, max_h: int, method: str):
     """
     Рассчитывает варианты времени на основе циклов по 1.5 часа.
-    method: 'bedtime' (знаем когда легли, ищем когда встать)
-            или 'wakeup' (знаем когда встать, ищем когда лечь)
     """
     cycle_duration = 1.5  # часа
     options = []
@@ -127,8 +126,6 @@ def get_sleep_cycles(base_time: datetime, min_h: int, max_h: int, method: str):
     for i in range(1, 11):
         sleep_duration = i * cycle_duration
 
-        # Если длительность сна попадает в диапазон (или очень близка к нему)
-        # Разрешаем небольшой выход за границы (если диапазон узкий), но в приоритете точное попадание
         if (sleep_duration >= min_h and sleep_duration <= max_h) or \
                 (min_h == max_h and abs(sleep_duration - min_h) <= 0.75):
 
@@ -167,20 +164,19 @@ async def calculate_wakeup_range(message: types.Message, state: FSMContext):
     options = get_sleep_cycles(base_time, min_h, max_h, method='bedtime')
 
     if not options:
-        # Если ничего не нашли (странный диапазон), берем просто min и max
         delta_min = timedelta(hours=min_h)
         delta_max = timedelta(hours=max_h)
         t_min = (base_time + delta_min).strftime("%H:%M")
         t_max = (base_time + delta_max).strftime("%H:%M")
         response = f"Для заданного диапазона ({min_h}-{max_h}ч) точных циклов нет. Ориентировочно вставай между {t_min} и {t_max}."
     else:
-        response = f"🛌 Если лечь в **{user_time_str}**, лучшие варианты для пробуждения:\n\n"
+        response = f"🛌 Если лечь в <b>{user_time_str}</b>, лучшие варианты для пробуждения:\n\n"
         for opt in options:
-            response += f"• **{opt['time']}** (Сон: {opt['hours']}ч — {opt['cycles']} циклов)\n"
+            response += f"• <b>{opt['time']}</b> (Сон: {opt['hours']}ч — {opt['cycles']} циклов)\n"
 
         response += "\nПробуждение в конце цикла помогает чувствовать себя бодрым! ☀️"
 
-    await message.answer(response, reply_markup=get_main_menu_kb())
+    await message.answer(response, reply_markup=get_main_menu_kb(), parse_mode="HTML")
     await state.clear()
 
 
@@ -202,22 +198,20 @@ async def calculate_bedtime_range(message: types.Message, state: FSMContext):
     # Получаем варианты (обратный отсчет)
     options = get_sleep_cycles(base_time, min_h, max_h, method='wakeup')
 
-    # Сортируем варианты по времени (от раннего к позднему), чтобы было красиво
     options.sort(key=lambda x: x['time'])
 
     if not options:
-        # Fallback
         delta_min = timedelta(hours=min_h)
         delta_max = timedelta(hours=max_h)
         t_earliest = (base_time - delta_max).strftime("%H:%M")
         t_latest = (base_time - delta_min).strftime("%H:%M")
         response = f"Для диапазона ({min_h}-{max_h}ч) точных циклов нет. Ложись между {t_earliest} и {t_latest}."
     else:
-        response = f"⏰ Чтобы бодро встать в **{user_time_str}**, ложись спать в:\n\n"
+        response = f"⏰ Чтобы бодро встать в <b>{user_time_str}</b>, ложись спать в:\n\n"
         for opt in options:
-            response += f"• **{opt['time']}** (Сон: {opt['hours']}ч — {opt['cycles']} циклов)\n"
+            response += f"• <b>{opt['time']}</b> (Сон: {opt['hours']}ч — {opt['cycles']} циклов)\n"
 
         response += "\nНе забудь лечь в постель на 15 минут раньше, чтобы успеть уснуть! 😴"
 
-    await message.answer(response, reply_markup=get_main_menu_kb())
+    await message.answer(response, reply_markup=get_main_menu_kb(), parse_mode="HTML")
     await state.clear()
